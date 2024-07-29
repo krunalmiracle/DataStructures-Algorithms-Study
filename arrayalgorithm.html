@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorting Algorithm Visualization</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        #array-container {
+            display: flex;
+            margin-bottom: 20px;
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .array-element {
+            width: 40px;
+            height: 40px;
+            border: 1px solid #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 2px;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+        }
+        .pivot { background-color: #ffeb3b; }
+        .current { background-color: #4caf50; }
+        .comparing { background-color: #2196f3; }
+        .swapping { background-color: #ff9800; }
+        .left-array { border-left: 3px solid #e91e63; }
+        .right-array { border-right: 3px solid #9c27b0; }
+        #controls, #info {
+            margin-top: 20px;
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        button, select {
+            margin: 0 5px;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            background-color: #2196f3;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover, select:hover {
+            background-color: #1976d2;
+        }
+        #info p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sorting Algorithm Visualization</h1>
+    <select id="algorithm-select">
+        <option value="bubble">Bubble Sort</option>
+        <option value="insertion">Insertion Sort</option>
+        <option value="quick">Quick Sort</option>
+        <option value="merge">Merge Sort</option>
+        <option value="selection">Selection Sort</option>
+        <option value="heap">Heap Sort</option>
+    </select>
+    <div id="array-container"></div>
+    <div id="info">
+        <p>Current: <span id="current"></span></p>
+        <p>Comparing: <span id="comparing"></span></p>
+        <p>Pivot: <span id="pivot"></span></p>
+        <p>Left: <span id="left"></span></p>
+        <p>Right: <span id="right"></span></p>
+    </div>
+    <div id="controls">
+        <button id="prevStep">Previous Step</button>
+        <button id="nextStep">Next Step</button>
+        <button id="reset">Reset</button>
+    </div>
+
+    <script>
+        let array = [64, 34, 25, 12, 22, 11, 90];
+        let steps = [];
+        let currentStep = -1;
+
+        function bubbleSort(arr) {
+            let len = arr.length;
+            for (let i = 0; i < len; i++) {
+                for (let j = 0; j < len - 1 - i; j++) {
+                    steps.push({array: [...arr], current: j, comparing: j + 1, left: j, right: j + 1});
+                    if (arr[j] > arr[j + 1]) {
+                        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+                        steps.push({array: [...arr], current: j, comparing: j + 1, left: j, right: j + 1, swapped: [j, j + 1]});
+                    }
+                }
+            }
+        }
+
+        function insertionSort(arr) {
+            for (let i = 1; i < arr.length; i++) {
+                let key = arr[i];
+                let j = i - 1;
+                steps.push({array: [...arr], current: i, comparing: j, left: 0, right: i});
+                while (j >= 0 && arr[j] > key) {
+                    arr[j + 1] = arr[j];
+                    j--;
+                    steps.push({array: [...arr], current: i, comparing: j, left: 0, right: i, swapped: [j + 1, j]});
+                }
+                arr[j + 1] = key;
+                steps.push({array: [...arr], current: i, comparing: j + 1, left: 0, right: i});
+            }
+        }
+
+        function quickSort(arr, low = 0, high = arr.length - 1) {
+            if (low < high) {
+                let pivotIndex = partition(arr, low, high);
+                steps.push({...steps[steps.length - 1], leftArray: low, rightArray: high});
+                quickSort(arr, low, pivotIndex - 1);
+                quickSort(arr, pivotIndex + 1, high);
+            }
+        }
+
+        function partition(arr, low, high) {
+            let pivot = arr[high];
+            let i = low - 1;
+            for (let j = low; j < high; j++) {
+                steps.push({array: [...arr], pivot: high, current: j, comparing: high, left: i, right: high});
+                if (arr[j] <= pivot) {
+                    i++;
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                    steps.push({array: [...arr], pivot: high, current: j, comparing: high, left: i, right: high, swapped: [i, j]});
+                }
+            }
+            [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
+            steps.push({array: [...arr], pivot: i + 1, current: i + 1, comparing: high, left: low, right: high, swapped: [i + 1, high]});
+            return i + 1;
+        }
+
+        function mergeSort(arr, left = 0, right = arr.length - 1) {
+            if (left < right) {
+                const mid = Math.floor((left + right) / 2);
+                mergeSort(arr, left, mid);
+                mergeSort(arr, mid + 1, right);
+                merge(arr, left, mid, right);
+            }
+        }
+
+        function merge(arr, left, mid, right) {
+            const leftArr = arr.slice(left, mid + 1);
+            const rightArr = arr.slice(mid + 1, right + 1);
+            let i = 0, j = 0, k = left;
+            while (i < leftArr.length && j < rightArr.length) {
+                steps.push({array: [...arr], current: k, comparing: mid + 1 + j, left: left, right: right, leftArray: left, rightArray: mid});
+                if (leftArr[i] <= rightArr[j]) {
+                    arr[k] = leftArr[i];
+                    i++;
+                } else {
+                    arr[k] = rightArr[j];
+                    j++;
+                }
+                steps.push({array: [...arr], current: k, comparing: mid + 1 + j, left: left, right: right, leftArray: left, rightArray: mid, swapped: [k]});
+                k++;
+            }
+            while (i < leftArr.length) {
+                arr[k] = leftArr[i];
+                steps.push({array: [...arr], current: k, left: left, right: right, leftArray: left, rightArray: mid, swapped: [k]});
+                i++;
+                k++;
+            }
+            while (j < rightArr.length) {
+                arr[k] = rightArr[j];
+                steps.push({array: [...arr], current: k, left: left, right: right, leftArray: left, rightArray: mid, swapped: [k]});
+                j++;
+                k++;
+            }
+        }
+
+        function selectionSort(arr) {
+            for (let i = 0; i < arr.length - 1; i++) {
+                let minIdx = i;
+                for (let j = i + 1; j < arr.length; j++) {
+                    steps.push({array: [...arr], current: i, comparing: j, left: i, right: arr.length - 1});
+                    if (arr[j] < arr[minIdx]) {
+                        minIdx = j;
+                    }
+                }
+                if (minIdx !== i) {
+                    [arr[i], arr[minIdx]] = [arr[minIdx], arr[i]];
+                    steps.push({array: [...arr], current: i, comparing: minIdx, left: i, right: arr.length - 1, swapped: [i, minIdx]});
+                }
+            }
+        }
+
+        function heapSort(arr) {
+            let n = arr.length;
+
+            for (let i = Math.floor(n / 2) - 1; i >= 0; i--)
+                heapify(arr, n, i);
+
+            for (let i = n - 1; i > 0; i--) {
+                [arr[0], arr[i]] = [arr[i], arr[0]];
+                steps.push({array: [...arr], current: 0, comparing: i, left: 0, right: i, swapped: [0, i]});
+                heapify(arr, i, 0);
+            }
+        }
+
+        function heapify(arr, n, i) {
+            let largest = i;
+            let left = 2 * i + 1;
+            let right = 2 * i + 2;
+
+            steps.push({array: [...arr], current: i, comparing: left, left: left, right: right});
+            if (left < n && arr[left] > arr[largest])
+                largest = left;
+
+            steps.push({array: [...arr], current: i, comparing: right, left: left, right: right});
+            if (right < n && arr[right] > arr[largest])
+                largest = right;
+
+            if (largest !== i) {
+                [arr[i], arr[largest]] = [arr[largest], arr[i]];
+                steps.push({array: [...arr], current: i, comparing: largest, left: left, right: right, swapped: [i, largest]});
+                heapify(arr, n, largest);
+            }
+        }
+
+        function renderArray(step) {
+            const container = document.getElementById('array-container');
+            container.innerHTML = '';
+            step.array.forEach((value, index) => {
+                const element = document.createElement('div');
+                element.className = 'array-element';
+                element.textContent = value;
+                if (index === step.pivot) element.classList.add('pivot');
+                if (index === step.current) element.classList.add('current');
+                if (index === step.comparing) element.classList.add('comparing');
+                if (step.swapped && step.swapped.includes(index)) element.classList.add('swapping');
+                if (step.leftArray !== undefined && index >= step.leftArray && index <= step.rightArray) element.classList.add('left-array');
+                if (step.rightArray !== undefined && index > step.rightArray) element.classList.add('right-array');
+                container.appendChild(element);
+            });
+
+            document.getElementById('current').textContent = step.current !== undefined ? step.current : 'N/A';
+            document.getElementById('comparing').textContent = step.comparing !== undefined ? step.comparing : 'N/A';
+            document.getElementById('pivot').textContent = step.pivot !== undefined ? step.pivot : 'N/A';
+            document.getElementById('left').textContent = step.left !== undefined ? step.left : 'N/A';
+            document.getElementById('right').textContent = step.right !== undefined ? step.right : 'N/A';
+        }
+
+        function nextStep() {
+            if (currentStep < steps.length - 1) {
+                currentStep++;
+                renderArray(steps[currentStep]);
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                renderArray(steps[currentStep]);
+            }
+        }
+
+        function reset() {
+            array = [64, 34, 25, 12, 22, 11, 90];
+            steps = [];
+            currentStep = -1;
+            const algorithm = document.getElementById('algorithm-select').value;
+            runAlgorithm(algorithm);
+        }
+
+        function runAlgorithm(algorithm) {
+            steps = [{array: [...array], current: -1, comparing: -1, left: -1, right: -1}];
+            switch(algorithm) {
+                case 'bubble':
+                    bubbleSort([...array]);
+                    break;
+                case 'insertion':
+                    insertionSort([...array]);
+                    break;
+                case 'quick':
+                    quickSort([...array]);
+                    break;
+                case 'merge':
+                    mergeSort([...array]);
+                    break;
+                case 'selection':
+                    selectionSort([...array]);
+                    break;
+                case 'heap':
+                    heapSort([...array]);
+                    break;
+            }
+            currentStep = 0;
+            renderArray(steps[currentStep]);
+        }
+
+        document.getElementById('nextStep').addEventListener('click', nextStep);
+        document.getElementById('prevStep').addEventListener('click', prevStep);
+        document.getElementById('reset').addEventListener('click', reset);
+        document.getElementById('algorithm-select').addEventListener('change', (e) => {
+            reset();
+        });
+
+        // Initialize
+        reset();
+    </script>
+</body>
+</html>
